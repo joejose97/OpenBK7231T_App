@@ -384,12 +384,14 @@
 #define ENABLE_MQTT								1
 #define ENABLE_TASMOTADEVICEGROUPS				1
 #define ENABLE_NTP								1
+#define ENABLE_TIME_PMNTP						1
 //#define ENABLE_TIME_DST						1
 #define ENABLE_DRIVER_BL0937					1
 #define ENABLE_DRIVER_LED 						1
 #define ENABLE_DRIVER_WEMO						1
 #define ENABLE_DRIVER_HUE						1
 #define ENABLE_DRIVER_DHT						1
+#define ENABLE_DRIVER_DS3231					1
 #define ENABLE_LITTLEFS							1
 //#define ENABLE_TEST_COMMANDS					1
 #define ENABLE_EXPAND_CONSTANT					1
