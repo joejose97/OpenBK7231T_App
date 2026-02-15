@@ -93,7 +93,7 @@ char* logfeaturenames[] = {
 
 #define LOGGING_BUFFER_SIZE		1024
 
-volatile int direct_serial_log = DEFAULT_DIRECT_SERIAL_LOG;
+volatile int direct_serial_log = LOGTYPE_NONE;
 
 static int g_extraSocketToSendLOG = 0;
 static char g_loggingBuffer[LOGGING_BUFFER_SIZE];
