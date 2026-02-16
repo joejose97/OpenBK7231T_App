@@ -104,6 +104,7 @@ void My_LN882_Basic_GPIO_Setup(lnPinMapping_t *pin, int direction) {
 	gpio_init.dir = direction;
 	gpio_init.pin = pin->pin;
 	gpio_init.speed = GPIO_HIGH_SPEED;
+	hal_gpio_pin_afio_en(pin->base, pin->pin, HAL_DISABLE);
 	hal_gpio_init(pin->base, &gpio_init);
 }
 
