@@ -38,7 +38,8 @@ void alert_log(const char *format, ...) {
 static char g_IP[32] = "unknown";
 static int g_bOpenAccessPointMode = 0;
 static uint8_t psk_value[40]      = {0x0};
-
+static int g_ln_reconnect_failures = 0;
+static int g_last_ap_cache_eviction_time = 0;
 
 struct netif* get_connected_nif() {
     struct netif *nif = NULL;
@@ -210,18 +211,40 @@ static void wifi_scan_complete_cb(void * arg)
 static void wifi_connected_cb(void * arg)
 {
     LN_UNUSED(arg);
+    g_ln_reconnect_failures = 0;
     if (g_wifiStatusCallback != NULL) {
         g_wifiStatusCallback(WIFI_STA_CONNECTED);
     }    
 }
 
 static void wifi_connect_failed_cb(void* arg) {
+	extern int g_secondsElapsed;
+	extern void wifi_manager_cleanup_scan_results(void);
+
+	g_ln_reconnect_failures++;
+	if (g_ln_reconnect_failures == 5) {
+        if (g_secondsElapsed - g_last_ap_cache_eviction_time > 30) {
+            alert_log("Too many reconnect failures (%d). Evicting BSSID scan cache to force rescan.", g_ln_reconnect_failures);
+            wifi_manager_cleanup_scan_results();
+            g_last_ap_cache_eviction_time = g_secondsElapsed;
+        }
+        g_ln_reconnect_failures = 0;
+	}
+
     wifi_sta_connect_failed_reason_t reason = *((wifi_sta_connect_failed_reason_t*) arg);
     if (reason == WIFI_STA_CONN_WRONG_PWD) {
         if (g_wifiStatusCallback != NULL) {
             g_wifiStatusCallback(WIFI_STA_AUTH_FAILED);
         }    
     }
+}
+
+static void wifi_disconnected_cb(void * arg)
+{
+    LN_UNUSED(arg);
+    if (g_wifiStatusCallback != NULL) {
+        g_wifiStatusCallback(WIFI_STA_DISCONNECTED);
+    }    
 }
 
 void wifi_init_sta(const char* oob_ssid, const char* connect_key, obkStaticIP_t *ip)
@@ -300,6 +323,7 @@ void wifi_init_sta(const char* oob_ssid, const char* connect_key, obkStaticIP_t 
 
     wifi_manager_reg_event_callback(WIFI_MGR_EVENT_STA_CONNECTED, &wifi_connected_cb);
     wifi_manager_reg_event_callback(WIFI_MGR_EVENT_STA_CONNECT_FAILED, &wifi_connect_failed_cb);
+    wifi_manager_reg_event_callback(WIFI_MGR_EVENT_STA_DISCONNECTED, &wifi_disconnected_cb);
     extern void ln_wpa_sae_enable(void);
     ln_wpa_sae_enable();
 
