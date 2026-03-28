@@ -1617,6 +1617,11 @@ void Main_Init()
 	g_unsafeInitDone = false;
 	bk_printf("%s, version %s\r\n", DEVICENAME_PREFIX_FULL, USER_SW_VER);
 
+#if defined(PLATFORM_LN882H)
+    extern void HAL_CrashDump_Init(void);
+    HAL_CrashDump_Init();
+#endif
+
 #ifdef WINDOWS
 #if ENABLE_LED_BASIC
 	// on windows, Main_Init may happen multiple time so we need to reset variables
