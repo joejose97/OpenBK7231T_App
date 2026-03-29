@@ -43,6 +43,7 @@ set(COMP_LWIP_SUPPORT           ON  PARENT_SCOPE)
 set(TARGET_ELF_NAME                         ${USER_PROJECT})
 set(pro_executable_target                   ${TARGET_ELF_NAME}.elf)
 add_executable(${pro_executable_target}     ${PROJ_ALL_SRC})
+target_link_options(${pro_executable_target} PUBLIC "-Wl,--wrap=log_stdio_write")
 
 target_link_libraries(${pro_executable_target}
     PUBLIC

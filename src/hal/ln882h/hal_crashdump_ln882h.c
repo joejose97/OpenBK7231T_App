@@ -52,6 +52,40 @@ static commandResult_t CMD_GetCrashTrace(const void *context, const char *cmd, c
     return CMD_RES_OK;
 }
 
+static commandResult_t CMD_ForceCrash(const void *context, const char *cmd, const char *args, int cmdFlags) {
+    ADDLOG_INFO(LOG_FEATURE_CMD, "Force crashing MCU to test CmBacktrace...");
+    int *p = (int*)0;
+    while(1) {
+        *p = 0xDEADBEEF;
+        p++;
+    }
+    return CMD_RES_OK;
+}
+
+// -------------------------------------------------------------------------------------------------
+// SDK INTERCEPTION (Bypasses the need to modify the OpenLN882H submodule logic)
+// -------------------------------------------------------------------------------------------------
+
+extern int __real_log_stdio_write(char *buf, size_t size);
+
+int __wrap_log_stdio_write(char *buf, size_t size) {
+    if (buf && size > 0) {
+        uint32_t ipsr;
+        __asm volatile ("MRS %0, ipsr" : "=r" (ipsr) );
+        
+        // IPSR holds the exception number. HardFault = 3, MemManage = 4, BusFault = 5, UsageFault = 6
+        if (ipsr >= 3 && ipsr <= 6) {
+            char tmp[128];
+            int copy_len = size < 127 ? size : 127;
+            memcpy(tmp, buf, copy_len);
+            tmp[copy_len] = '\0';
+            ln882h_crash_print("%s", tmp);
+        }
+    }
+    // Always forward to the real hardware UART handler
+    return __real_log_stdio_write(buf, size);
+}
+
 void HAL_CrashDump_Init() {
     // Re-verify magic on boot. If it's garbage (e.g. cold power loss), reset the cursor early 
     // to prevent memory anomalies if someone calls get_crash before a crash happens.
@@ -63,6 +97,7 @@ void HAL_CrashDump_Init() {
     cm_backtrace_init("OpenBeken_LN882H", "1.0", "1.0");
 
     CMD_RegisterCommand("get_crash", CMD_GetCrashTrace, NULL);
+    CMD_RegisterCommand("force_crash", CMD_ForceCrash, NULL);
 }
 
 #endif // PLATFORM_LN882H
