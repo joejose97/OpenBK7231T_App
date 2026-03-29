@@ -1,5 +1,6 @@
 #ifdef PLATFORM_LN882H
 
+#include "serial.h"
 #include "../../new_common.h"
 #include "../../cmnds/cmd_public.h"
 #include "../../logging/logging.h"
@@ -87,17 +88,26 @@ int __wrap_log_stdio_write(char *buf, size_t size) {
 }
 
 void HAL_CrashDump_Init() {
-    // Re-verify magic on boot. If it's garbage (e.g. cold power loss), reset the cursor early 
-    // to prevent memory anomalies if someone calls get_crash before a crash happens.
-    if (g_crash_magic != CRASH_MAGIC) {
-        g_crash_cursor = 0;
-    }
+  // Override default LN882H UART logging port to UART0 at high baud rate for
+  // direct serial logging
+//   #include "serial.h"
+  extern Serial_t m_LogSerial;
+  serial_deinit(&m_LogSerial);
+  serial_init(&m_LogSerial, SER_PORT_UART0, 921600, NULL);
+  // Re-verify magic on boot. If it's garbage (e.g. cold power loss), reset the
+  // cursor early to prevent memory anomalies if someone calls get_crash before
+  // a crash happens.
+  if (g_crash_magic != CRASH_MAGIC) {
+    g_crash_cursor = 0;
+  }
 
-    extern void cm_backtrace_init(const char *firmware_name, const char *hardware_ver, const char *software_ver);
-    cm_backtrace_init("OpenBeken_LN882H", "1.0", "1.0");
+  extern void cm_backtrace_init(const char *firmware_name,
+                                const char *hardware_ver,
+                                const char *software_ver);
+  cm_backtrace_init("OpenBeken_LN882H", "1.0", "1.0");
 
-    CMD_RegisterCommand("get_crash", CMD_GetCrashTrace, NULL);
-    CMD_RegisterCommand("force_crash", CMD_ForceCrash, NULL);
+  CMD_RegisterCommand("get_crash", CMD_GetCrashTrace, NULL);
+  CMD_RegisterCommand("force_crash", CMD_ForceCrash, NULL);
 }
 
 #endif // PLATFORM_LN882H
